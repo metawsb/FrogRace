@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Frog Race — Swamp Original</title>
+<style>
+/* ============================================================
+   FROG RACE — DESIGN TOKENS
+   Palette: swamp night (near-black teal/blue) + toxic-green,
+   gold and mystic-purple neon accents. Glass panels are shaped
+   like lily pads (asymmetric radius + notch) — the signature
+   motif that ties "glassmorphism" back to the swamp subject.
+   ============================================================ */
+:root{
+  --bg-void:#05080d;
+  --bg-1:#0a0f1a;
+  --bg-2:#0c1a1c;
+  --bg-3:#0f2620;
+  --glass:rgba(16,26,30,0.58);
+  --glass-hi:rgba(255,255,255,0.06);
+  --glass-border:rgba(140,255,200,0.14);
+  --line:rgba(255,255,255,0.08);
+  --green:#39ff88;
+  --green-soft:#8dffbf;
+  --gold:#ffc845;
+  --gold-soft:#ffe08a;
+  --purple:#b14eff;
+  --purple-soft:#dcb0ff;
+  --cyan:#3dfff0;
+  --red:#ff3d5a;
+  --water:#1ca7ec;
+  --text:#eaf4f2;
+  --text-dim:#8ea3a1;
+  --text-faint:#5b6e6c;
+  --font-display:'Arial Black','Segoe UI',system-ui,sans-serif;
+  --font-body:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;
+  --font-mono:'Consolas','SFMono-Regular','Courier New',monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box;}
+html,body{
+  margin:0;padding:0;height:100%;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, #123632 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 100% 100%, #0e2a2c 0%, transparent 50%),
+    linear-gradient(180deg,var(--bg-1) 0%,var(--bg-void) 100%);
+  color:var(--text);
+  font-family:var(--font-body);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+body{min-height:100%;}
+::selection{background:var(--green);color:#04180d;}
+button{font-family:inherit;}
+input{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(140,255,200,0.18);border-radius:8px;}
+
+a{color:var(--green-soft);}
+
+/* ---------- ambient CSS swamp backdrop (lobby only) ---------- */
+.swamp-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+}
+.swamp-bg .glow{
+  position:absolute;border-radius:50%;filter:blur(60px);opacity:0.35;
+}
+.swamp-bg .glow.g1{width:420px;height:420px;background:var(--green);top:-120px;left:-100px;}
+.swamp-bg .glow.g2{width:360px;height:360px;background:var(--purple);bottom:-140px;right:-80px;opacity:0.28;}
+.swamp-bg .glow.g3{width:300px;height:300px;background:var(--gold);top:40%;right:10%;opacity:0.14;}
+.firefly{
+  position:absolute;width:5px;height:5px;border-radius:50%;
+  background:var(--gold-soft);
+  box-shadow:0 0 8px 3px rgba(255,224,138,0.8);
+  animation:fireflyFloat 9s ease-in-out infinite;
+  opacity:0;
+}
+@keyframes fireflyFloat{
+  0%{opacity:0;transform:translate(0,0);}
+  10%{opacity:.9;}
+  50%{transform:translate(30px,-40px);}
+  90%{opacity:.7;}
+  100%{opacity:0;transform:translate(-20px,-90px);}
+}
+.leaf-drift{
+  position:absolute;top:-30px;font-size:18px;opacity:0.5;
+  animation:leafFall linear infinite;
+  filter:drop-shadow(0 0 4px rgba(0,0,0,.4));
+}
+@keyframes leafFall{
+  0%{transform:translateY(-40px) translateX(0) rotate(0deg);}
+  100%{transform:translateY(110vh) translateX(60px) rotate(360deg);}
+}
+
+/* ---------- glass panel base ---------- */
+.glass{
+  background:var(--glass);
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  border:1px solid var(--glass-border);
+  border-radius:20px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 var(--glass-hi);
+}
+
+/* ---------- layout shell ---------- */
+#app{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:18px 20px 60px;}
+
+/* ---------- header ---------- */
+header.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:12px 18px;margin-bottom:22px;
+  flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand .logo{
+  width:44px;height:44px;border-radius:14px 4px 14px 4px;
+  background:radial-gradient(circle at 32% 28%, #62ffa8, #1c8f52 70%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 0 18px rgba(57,255,136,0.55), inset 0 2px 4px rgba(255,255,255,0.35);
+}
+.brand h1{
+  font-family:var(--font-display);
+  font-size:22px;letter-spacing:2px;margin:0;
+  text-transform:uppercase;
+  background:linear-gradient(180deg,#fff, var(--green-soft));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 0 24px rgba(57,255,136,0.35);
+}
+.brand span.tag{
+  display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:3px;
+  color:var(--text-faint);text-transform:uppercase;margin-top:-2px;
+}
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.balance-pill{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 16px 9px 12px;border-radius:999px;
+  font-family:var(--font-mono);font-weight:700;font-size:15px;
+}
+.balance-pill .coin{
+  width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fff2c4, var(--gold) 55%, #a97a12 100%);
+  box-shadow:0 0 8px rgba(255,200,69,0.7);
+}
+.balance-pill b{color:var(--gold-soft);font-variant-numeric:tabular-nums;}
+
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);color:var(--text-dim);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:17px;transition:all .18s var(--ease);
+}
+.icon-btn:hover{color:var(--text);border-color:var(--glass-border);background:rgba(57,255,136,0.08);transform:translateY(-1px);}
+.icon-btn.active{color:var(--green);border-color:var(--green);box-shadow:0 0 12px rgba(57,255,136,0.35);}
+
+.pf-btn{
+  display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(177,78,255,0.08);color:var(--purple-soft);
+  cursor:pointer;font-size:13px;font-weight:600;transition:all .18s var(--ease);
+}
+.pf-btn:hover{border-color:var(--purple);box-shadow:0 0 14px rgba(177,78,255,0.35);}
+.pf-btn .dot{width:7px;height:7px;border-radius:50%;background:var(--purple);box-shadow:0 0 6px var(--purple);}
+
+/* ---------- lobby layout ---------- */
+#lobby{display:flex;gap:22px;align-items:flex-start;}
+.carousel-wrap{flex:1 1 640px;min-width:0;}
+.section-label{
+  font-family:var(--font-mono);font-size:12px;letter-spacing:3px;
+  color:var(--text-faint);text-transform:uppercase;margin:2px 4px 12px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+
+.frog-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+}
+.frog-card{
+  position:relative;border-radius:18px;padding:14px 14px 12px;
+  cursor:pointer;transition:transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease);
+  border:1px solid var(--line);
+  overflow:hidden;
+  animation:cardIn .5s var(--ease) both;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+.frog-card::before{
+  content:"";position:absolute;inset:0;opacity:.14;pointer-events:none;
+  background:radial-gradient(circle at 30% 0%, var(--fc), transparent 65%);
+}
+.frog-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,0.4);}
+.frog-card.selected{
+  border-color:var(--fc);
+  box-shadow:0 0 0 1px var(--fc), 0 0 26px -4px var(--fc), 0 14px 30px rgba(0,0,0,0.45);
+}
+.frog-card.selected::after{
+  content:"✓ SELECTED";position:absolute;top:10px;right:10px;
+  font-family:var(--font-mono);font-size:9px;letter-spacing:1.5px;font-weight:700;
+  color:var(--bg-void);background:var(--fc);padding:3px 7px;border-radius:6px;
+}
+.fc-head{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+.fc-avatar{
+  width:52px;height:52px;border-radius:14px;flex:none;position:relative;
+  background:radial-gradient(circle at 30% 25%, var(--fc-soft), var(--fc) 60%, #05100a 130%);
+  box-shadow:inset 0 2px 5px rgba(255,255,255,0.35), inset 0 -6px 10px rgba(0,0,0,0.35), 0 0 14px -2px var(--fc);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+}
+.fc-avatar canvas{display:block;}
+.fc-name{font-weight:700;font-size:14.5px;line-height:1.25;}
+.fc-skin{font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);letter-spacing:.5px;}
+.fc-mult{
+  margin-left:auto;text-align:right;
+}
+.fc-mult b{display:block;font-family:var(--font-mono);font-size:17px;color:var(--gold-soft);}
+.fc-mult small{font-size:9px;color:var(--text-faint);letter-spacing:1px;}
+.fc-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:10px 0 8px;}
+.stat-row{display:flex;align-items:center;gap:6px;font-size:10px;}
+.stat-row .lbl{width:26px;color:var(--text-faint);font-family:var(--font-mono);flex:none;}
+.stat-row .bar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;}
+.stat-row .bar i{display:block;height:100%;border-radius:3px;background:var(--fc);width:0%;transition:width .7s var(--ease);box-shadow:0 0 6px var(--fc);}
+.fc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+.fc-pop{font-size:10px;color:var(--text-faint);}
+.fc-pop b{color:var(--text-dim);}
+.fc-badge{
+  font-size:9.5px;padding:3px 7px;border-radius:7px;background:rgba(255,255,255,0.05);
+  color:var(--text-dim);font-family:var(--font-mono);
+}
+.fc-customize{
+  margin-top:9px;
+}
+.fc-customize select{
+  width:100%;background:rgba(0,0,0,0.35);color:var(--text-dim);border:1px solid var(--line);
+  border-radius:8px;padding:5px 6px;font-size:10.5px;font-family:var(--font-mono);cursor:pointer;
+}
+.fc-customize select:focus{outline:1px solid var(--fc);}
+
+/* ---------- bet slip: lily-pad glass panel (signature element) ---------- */
+.betslip-wrap{flex:0 0 336px;position:sticky;top:16px;}
+.betslip{
+  position:relative;padding:26px 24px 22px;
+  border-radius:46% 54% 51% 49% / 55% 46% 54% 45%;
+  overflow:visible;
+}
+.betslip::after{ /* lily-pad notch */
+  content:"";position:absolute;top:-2px;right:34px;width:34px;height:34px;
+  background:
+    linear-gradient(135deg, transparent 49.4%, var(--bg-void) 50.6%);
+  filter:drop-shadow(0 0 0 var(--glass-border));
+}
+.betslip-inner{border-radius:28px;}
+.betslip h3{
+  font-family:var(--font-display);text-transform:uppercase;letter-spacing:1.5px;
+  font-size:15px;margin:0 0 14px;color:var(--green-soft);
+  display:flex;align-items:center;gap:8px;
+}
+.betslip h3 .pip{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+
+.selected-frog-box{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;
+  background:rgba(0,0,0,0.25);border:1px solid var(--line);margin-bottom:16px;min-height:58px;
+}
+.selected-frog-box .swatch{width:30px;height:30px;border-radius:9px;flex:none;background:var(--fc,#333);box-shadow:0 0 10px var(--fc,#333);}
+.selected-frog-box .info b{display:block;font-size:13px;}
+.selected-frog-box .info span{font-size:10.5px;color:var(--text-faint);}
+.selected-frog-box.empty{color:var(--text-faint);font-size:12.5px;justify-content:center;}
+
+.wager-row label{display:block;font-size:10.5px;letter-spacing:1.5px;color:var(--text-faint);margin-bottom:6px;text-transform:uppercase;font-family:var(--font-mono);}
+.wager-input{
+  display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);
+  border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;
+}
+.wager-input .cur{color:var(--gold-soft);font-weight:700;}
+.wager-input input{
+  flex:1;background:transparent;border:none;outline:none;color:var(--text);
+  font-family:var(--font-mono);font-size:17px;font-weight:700;width:100%;min-width:0;
+}
+.chip-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.chip{
+  flex:1;padding:6px 0;text-align:center;border-radius:8px;border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);font-size:11px;color:var(--text-dim);cursor:pointer;
+  transition:all .15s var(--ease);font-family:var(--font-mono);
+}
+.chip:hover{border-color:var(--green);color:var(--green-soft);background:rgba(57,255,136,0.08);}
+
+.payout-preview{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11.5px;color:var(--text-faint);margin-bottom:14px;padding:0 2px;
+}
+.payout-preview b{color:var(--gold-soft);font-family:var(--font-mono);font-size:14px;}
+
+.bet-btn{
+  width:100%;padding:15px;border:none;border-radius:16px;cursor:pointer;
+  font-family:var(--font-display);letter-spacing:2px;font-size:16px;text-transform:uppercase;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold) 55%, #c9902c);
+  color:#241300;box-shadow:0 8px 22px -6px rgba(255,200,69,0.6), inset 0 1px 0 rgba(255,255,255,0.6);
+  transition:transform .15s var(--ease), box-shadow .15s var(--ease), filter .15s;
+  position:relative;overflow:hidden;
+}
+.bet-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 26px -6px rgba(255,200,69,0.75), inset 0 1px 0 rgba(255,255,255,0.6);}
+.bet-btn:active:not(:disabled){transform:translateY(0px) scale(.98);}
+.bet-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;box-shadow:none;}
+
+.slip-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;}
+.link-btn{background:none;border:none;color:var(--text-faint);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--font-body);}
+.link-btn:hover{color:var(--green-soft);}
+
+/* ---------- arena ---------- */
+#arena{display:none;}
+#arena.show{display:block;}
+.arena-shell{padding:16px 16px 20px;position:relative;}
+.arena-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.race-timer{font-family:var(--font-mono);font-size:13px;color:var(--text-dim);}
+.race-mode-badge{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.05);color:var(--text-faint);
+  border:1px solid var(--line);
+}
+.your-bet-pill{
+  display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;
+  background:rgba(57,255,136,0.07);border:1px solid rgba(57,255,136,0.28);
+  font-size:11.5px;color:var(--text-dim);flex:1 1 auto;min-width:180px;
+}
+.your-bet-pill .sw{width:16px;height:16px;border-radius:6px;flex:none;background:var(--fc,#39ff88);box-shadow:0 0 8px var(--fc,#39ff88);}
+.your-bet-pill b{color:var(--text);font-weight:700;}
+.your-bet-pill .yb-payout{margin-left:auto;color:var(--gold-soft);font-family:var(--font-mono);font-weight:700;}
+canvas#raceCanvas{
+  width:100%;display:block;border-radius:16px;background:#000;
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+
+/* ---------- provably fair drawer ---------- */
+#pfOverlay{
+  position:fixed;inset:0;z-index:50;display:none;
+  background:rgba(3,6,10,0.6);backdrop-filter:blur(4px);
+}
+#pfOverlay.show{display:flex;justify-content:flex-end;}
+.pf-drawer{
+  width:min(420px,92vw);height:100%;overflow-y:auto;
+  border-radius:0;border-left:1px solid var(--glass-border);
+  padding:22px 22px 40px;
+  animation:slideIn .28s var(--ease);
+}
+@keyframes slideIn{from{transform:translateX(30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.pf-drawer h2{font-family:var(--font-display);letter-spacing:1px;font-size:18px;color:var(--purple-soft);margin:0 0 6px;text-transform:uppercase;}
+.pf-drawer p.desc{font-size:12px;color:var(--text-dim);line-height:1.6;margin:0 0 20px;}
+.pf-field{margin-bottom:14px;}
+.pf-field label{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint);font-family:var(--font-mono);margin-bottom:5px;}
+.pf-field .val{
+  background:rgba(0,0,0,0.35);border:1px solid var(--line);border-radius:10px;padding:9px 10px;
+  font-family:var(--font-mono);font-size:11.5px;word-break:break-all;color:var(--green-soft);
+  display:flex;align-items:center;gap:8px;
+}
+.pf-field .val.mono-purple{color:var(--purple-soft);}
+.pf-field .val input{background:transparent;border:none;outline:none;color:var(--text);width:100%;font-family:var(--font-mono);font-size:11.5px;}
+.pf-field .val button{
+  flex:none;background:rgba(255,255,255,0.06);border:1px solid var(--line);color:var(--text-dim);
+  border-radius:7px;padding:4px 8px;font-size:10px;cursor:pointer;
+}
+.pf-field .val button:hover{color:var(--text);border-color:var(--green);}
+.pf-verify{
+  margin-top:6px;padding:10px 12px;border-radius:12px;font-size:11.5px;
+  background:rgba(57,255,136,0.08);border:1px solid rgba(57,255,136,0.3);color:var(--green-soft);
+  display:none;align-items:center;gap:8px;
+}
+.pf-verify.show{display:flex;}
+.pf-history{margin-top:22px;}
+.pf-history table{width:100%;border-collapse:collapse;font-size:10.5px;font-family:var(--font-mono);}
+.pf-history th{text-align:left;color:var(--text-faint);font-weight:600;padding:5px 4px;border-bottom:1px solid var(--line);}
+.pf-history td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-dim);}
+.pf-history .hash-cell{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-close{position:absolute;top:16px;right:16px;}
+
+/* ---------- result modal ---------- */
+#resultOverlay{
+  position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(2,4,8,0.72);backdrop-filter:blur(6px);padding:20px;
+}
+#resultOverlay.show{display:flex;}
+.result-modal{
+  width:min(460px,100%);padding:30px 28px 26px;text-align:center;position:relative;
+  animation:popIn .35s var(--ease);
+}
+@keyframes popIn{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.result-badge{font-size:44px;line-height:1;margin-bottom:6px;}
+.result-title{font-family:var(--font-display);font-size:24px;letter-spacing:1.5px;text-transform:uppercase;margin:4px 0 4px;}
+.result-title.win{color:var(--gold-soft);text-shadow:0 0 22px rgba(255,200,69,0.5);}
+.result-title.lose{color:var(--text-dim);}
+.result-sub{font-size:13px;color:var(--text-dim);margin-bottom:18px;}
+.payout-amount{
+  font-family:var(--font-mono);font-weight:700;font-size:38px;margin:6px 0 18px;
+  color:var(--gold-soft);
+}
+.payout-amount.neg{color:#8a97a3;font-size:26px;}
+.standings{text-align:left;margin:0 0 20px;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
+.standing-row{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:12.5px;
+  border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.015);
+}
+.standing-row:last-child{border-bottom:none;}
+.standing-row .pos{width:20px;font-family:var(--font-mono);color:var(--text-faint);font-weight:700;}
+.standing-row .sw{width:14px;height:14px;border-radius:4px;flex:none;}
+.standing-row .nm{flex:1;}
+.standing-row.you{background:rgba(57,255,136,0.06);}
+.standing-row.you .nm{font-weight:700;color:var(--green-soft);}
+.result-actions{display:flex;gap:10px;}
+.result-actions .bet-btn{flex:1;}
+.secondary-btn{
+  flex:1;padding:15px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,0.03);
+  color:var(--text-dim);font-family:var(--font-display);letter-spacing:1.5px;font-size:13px;
+  text-transform:uppercase;cursor:pointer;transition:all .15s var(--ease);
+}
+.secondary-btn:hover{border-color:var(--green);color:var(--green-soft);}
+
+/* ---------- toasts ---------- */
+#toasts{position:fixed;top:18px;right:18px;z-index:80;display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+.toast{
+  padding:12px 16px;border-radius:14px;min-width:220px;max-width:300px;
+  animation:toastIn .3s var(--ease), toastOut .3s var(--ease) 3.4s forwards;
+  display:flex;gap:10px;align-items:center;
+}
+.toast .ti{font-size:20px;}
+.toast b{display:block;font-size:12.5px;}
+.toast span{font-size:11px;color:var(--text-dim);}
+@keyframes toastIn{from{transform:translateX(30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes toastOut{to{transform:translateX(30px);opacity:0;}}
+
+/* ---------- misc ---------- */
+.hidden{display:none !important;}
+footer.note{
+  text-align:center;font-size:10.5px;color:var(--text-faint);margin-top:34px;
+  font-family:var(--font-mono);letter-spacing:.5px;line-height:1.8;
+}
+footer.note b{color:var(--text-dim);}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  #lobby{flex-direction:column;}
+  .betslip-wrap{position:static;width:100%;flex:none;}
+  .frog-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:560px){
+  .frog-grid{grid-template-columns:1fr 1fr;}
+  .betslip{border-radius:26px;}
+  .betslip::after{display:none;}
+  header.topbar{padding:10px 4px;}
+  .brand h1{font-size:17px;}
+  .your-bet-pill{font-size:10.5px;min-width:0;}
+}
+@media (max-width:400px){
+  .frog-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="swamp-bg" id="swampBg"></div>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🐸</div>
+      <div>
+        <h1>Frog Race</h1>
+        <span class="tag">Swamp Original · Play Money</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="pf-btn" id="pfOpenBtn" title="Provably Fair"><span class="dot"></span> Provably Fair</button>
+      <div class="balance-pill glass"><span class="coin"></span>Balance <b id="balanceVal">1,000</b></div>
+      <button class="icon-btn active" id="soundBtn" title="Toggle sound">🔊</button>
+    </div>
+  </header>
+
+  <!-- ================= LOBBY ================= -->
+  <section id="lobby">
+    <div class="carousel-wrap">
+      <div class="section-label">Choose Your Frog — Race #<span id="raceNumLabel">1</span></div>
+      <div class="frog-grid" id="frogGrid"></div>
+    </div>
+
+    <div class="betslip-wrap">
+      <div class="betslip glass">
+        <div class="betslip-inner">
+          <h3><span class="pip"></span>Bet Slip</h3>
+
+          <div class="selected-frog-box empty" id="selectedFrogBox">Select a frog to begin</div>
+
+          <div class="wager-row">
+            <label>Wager Amount</label>
+            <div class="wager-input">
+              <span class="cur">¢</span>
+              <input type="number" id="wagerInput" value="50" min="1" step="1">
+            </div>
+            <div class="chip-row">
+              <div class="chip" data-chip="10">10</div>
+              <div class="chip" data-chip="50">50</div>
+              <div class="chip" data-chip="100">100</div>
+              <div class="chip" data-chip="half">½</div>
+              <div class="chip" data-chip="double">2×</div>
+              <div class="chip" data-chip="max">MAX</div>
+            </div>
+          </div>
+
+          <div class="payout-preview">
+            <span>Potential Payout</span>
+            <b id="potentialPayout">¢0</b>
+          </div>
+
+          <button class="bet-btn" id="betBtn" disabled>Select a Frog</button>
+
+          <div class="slip-foot">
+            <button class="link-btn" id="resetBalanceBtn">Reset balance</button>
+            <span style="font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);">RTP target 98%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ARENA ================= -->
+  <section id="arena">
+    <div class="arena-shell glass">
+      <div class="arena-top">
+        <div class="your-bet-pill" id="yourBetPill"></div>
+        <span class="race-mode-badge" id="raceModeBadge">☀ Day</span>
+        <span class="race-timer" id="raceTimer">0.0s</span>
+      </div>
+      <canvas id="raceCanvas"></canvas>
+    </div>
+  </section>
+
+  <footer class="note">
+    <b>Frog Race</b> is a free-to-play demo using virtual credits with no cash value and cannot be redeemed for money or prizes.<br>
+    All outcomes are generated client-side from a provably-fair, cryptographically-seeded hash chain — see the Provably Fair panel.
+  </footer>
+</div>
+
+<!-- ================= PROVABLY FAIR DRAWER ================= -->
+<div id="pfOverlay">
+  <div class="pf-drawer glass">
+    <button class="icon-btn pf-close" id="pfCloseBtn">✕</button>
+    <h2>Provably Fair</h2>
+    <p class="desc">Before you bet, we commit to a secret <b>Server Seed</b> by publishing only its SHA-256 hash. Every frog stat and jump roll for this race is deterministically derived from <span style="color:var(--green-soft)">Server Seed</span> + <span style="color:var(--green-soft)">Client Seed</span> + <span style="color:var(--green-soft)">Nonce</span>. After the race we reveal the raw server seed so you can re-hash it yourself and confirm it matches the commitment made beforehand — proof the result wasn't changed after you bet.</p>
+
+    <div class="pf-field">
+      <label>Server Seed (SHA-256 commitment)</label>
+      <div class="val" id="pfHashVal">—</div>
+    </div>
+    <div class="pf-field">
+      <label>Server Seed (revealed after race)</label>
+      <div class="val mono-purple" id="pfRevealVal">Hidden until race resolves</div>
+    </div>
+    <div class="pf-field">
+      <label>Client Seed <span style="color:var(--text-dim);text-transform:none;">(editable)</span></label>
+      <div class="val">
+        <input id="pfClientSeed" spellcheck="false">
+        <button id="pfRandomizeBtn">Randomize</button>
+      </div>
+    </div>
+    <div class="pf-field">
+      <label>Nonce</label>
+      <div class="val" id="pfNonceVal">0</div>
+    </div>
+
+    <div class="pf-verify" id="pfVerifyBox">✅ Re-hashed server seed matches the pre-race commitment.</div>
+
+    <div class="pf-history">
+      <div class="section-label">Round History</div>
+      <table>
+        <thead><tr><th>#</th><th>Hash</th><th>Winner</th><th>✓</th></tr></thead>
+        <tbody id="pfHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESULT MODAL ================= -->
+<div id="resultOverlay">
+  <div class="result-modal glass">
+    <div class="result-badge" id="resultBadge">🏆</div>
+    <div class="result-title win" id="resultTitle">You Win!</div>
+    <div class="result-sub" id="resultSub">Golden Frog crossed the finish line first</div>
+    <div class="payout-amount" id="payoutAmount">+¢0</div>
+    <div class="standings" id="standingsBox"></div>
+    <div class="result-actions">
+      <button class="secondary-btn" id="closeResultBtn">Back to Lobby</button>
+      <button class="bet-btn" id="raceAgainBtn">Race Again</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   SECTION 0 — LOW-LEVEL UTILITIES
+   ============================================================ */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp  = (a,b,t)=>a+(b-a)*t;
+const easeOutCubic = t=>1-Math.pow(1-t,3);
+const easeInOutSine = t=>-(Math.cos(Math.PI*t)-1)/2;
+const rand01 = ()=>Math.random(); // used only for non-outcome cosmetic flourishes (particles, ambient fx)
+const pick = arr=>arr[Math.floor(Math.random()*arr.length)];
+const fmt = n=>Math.round(n).toLocaleString('en-US');
+
+function bytesToHex(buf){
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const digest = await crypto.subtle.digest('SHA-256', enc);
+  return bytesToHex(digest);
+}
+function randomHex(bytes=16){
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  return bytesToHex(arr.buffer);
+}
+
+/* ============================================================
+   SECTION 1 — AUDIO ENGINE (synthesized, no external files)
+   ============================================================ */
+const Audio1 = (()=>{
+  let ctx = null;
+  let muted = false;
+  function ensure(){
+    if(!ctx){
+      try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; }
+    }
+    if(ctx && ctx.state==='suspended'){ ctx.resume(); }
+    return ctx;
+  }
+  function gainEnv(node, vol, dur, attack=0.008){
+    const t0 = ctx.currentTime;
+    node.gain.setValueAtTime(0, t0);
+    node.gain.linearRampToValueAtTime(vol, t0+attack);
+    node.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+  }
+  function tone(freq, dur=0.18, type='sine', vol=0.18, delay=0, freqEnd=null){
+    if(muted || !ensure()) return;
+    const t0 = ctx.currentTime+delay;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq,t0);
+    if(freqEnd!==null) osc.frequency.exponentialRampToValueAtTime(Math.max(20,freqEnd), t0+dur);
+    osc.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0,t0);
+    g.gain.linearRampToValueAtTime(vol,t0+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+  }
+  function noiseBurst(dur=0.25, vol=0.2, lp=1800, delay=0){
+    if(muted || !ensure()) return;
+    const t0 = ctx.currentTime+delay;
+    const bufSize = ctx.sampleRate*dur;
+    const buf = ctx.createBuffer(1,bufSize,ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<bufSize;i++) data[i] = (Math.random()*2-1)*(1-i/bufSize);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const filt = ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=lp;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    src.connect(filt); filt.connect(g); g.connect(ctx.destination);
+    src.start(t0);
+  }
+  return {
+    click(){ tone(1200,0.05,'square',0.05); },
+    croak(){ tone(220,0.16,'sawtooth',0.14,0,110); },
+    splash(){ noiseBurst(0.22,0.16,1400); },
+    coin(){ [988,1319,1568].forEach((f,i)=>tone(f,0.14,'triangle',0.12,i*0.05)); },
+    beep(pitch=880){ tone(pitch,0.12,'sine',0.16); },
+    go(){ tone(1400,0.28,'sawtooth',0.2); },
+    fanfare(){
+      const notes=[523,659,784,1046];
+      notes.forEach((f,i)=>tone(f,0.5,'triangle',0.15,i*0.11));
+      setTimeout(()=>noiseBurst(0.6,0.08,4000),80);
+    },
+    loseTone(){ tone(300,0.35,'sine',0.13,0,140); },
+    swell(){ noiseBurst(1.1,0.06,900); },
+    unlock(){ [660,880,1320].forEach((f,i)=>tone(f,0.2,'square',0.09,i*0.07)); },
+    toggle(state){ muted = state===undefined? !muted : !state; return !muted; },
+    get muted(){ return muted; },
+    resume(){ ensure(); }
+  };
+})();
+
+/* ============================================================
+   SECTION 2 — GAME DATA: frog archetypes & skins
+   ============================================================ */
+const ARCHETYPES = [
+  {id:'green',  name:'Green Frog',        emoji:'🐸', color:'#3ddc71', soft:'#8dffbf', base:{speed:65,jump:60,balance:70,reaction:60,stamina:65,luck:55,aggression:50,recovery:60}},
+  {id:'poison', name:'Red Poison Frog',   emoji:'🐸', color:'#ff3d5a', soft:'#ff9fae', base:{speed:78,jump:55,balance:45,reaction:70,stamina:50,luck:45,aggression:85,recovery:40}},
+  {id:'golden', name:'Golden Frog',       emoji:'🐸', color:'#ffd23d', soft:'#fff08a', base:{speed:55,jump:50,balance:60,reaction:55,stamina:55,luck:88,aggression:40,recovery:55}},
+  {id:'ice',    name:'Blue Ice Frog',     emoji:'🐸', color:'#3dc7ff', soft:'#a3e8ff', base:{speed:50,jump:58,balance:65,reaction:50,stamina:85,luck:50,aggression:35,recovery:70}},
+  {id:'mystic', name:'Purple Mystic Frog',emoji:'🐸', color:'#b14eff', soft:'#dcb0ff', base:{speed:60,jump:65,balance:80,reaction:65,stamina:60,luck:65,aggression:45,recovery:65}},
+  {id:'cyber',  name:'Cyber Frog',        emoji:'🐸', color:'#3dfff0', soft:'#a3fff5', base:{speed:70,jump:62,balance:55,reaction:90,stamina:58,luck:48,aggression:60,recovery:50}},
+];
+
+const SKINS = [
+  {id:'classic',   name:'Classic',        trail:null},
+  {id:'ninja',     name:'Ninja Frog',     trail:'#3a3a3a'},
+  {id:'pirate',    name:'Pirate Frog',    trail:'#8b5a2b'},
+  {id:'king',      name:'King Frog',      trail:'#ffd23d'},
+  {id:'alien',     name:'Alien Frog',     trail:'#7CFC00'},
+  {id:'zombie',    name:'Zombie Frog',    trail:'#6b8e23'},
+  {id:'robot',     name:'Robot Frog',     trail:'#9aa5b1'},
+  {id:'samurai',   name:'Samurai Frog',   trail:'#c0392b'},
+  {id:'wizard',    name:'Wizard Frog',    trail:'#8e44ad'},
+  {id:'cowboy',    name:'Cowboy Frog',    trail:'#a0522d'},
+  {id:'detective', name:'Detective Frog', trail:'#5d4037'},
+  {id:'astronaut', name:'Astronaut Frog', trail:'#e0e0e0'},
+  {id:'disco',     name:'Disco Frog',     trail:'#ff00ff'},
+  {id:'cyberpunk', name:'Cyberpunk Frog', trail:'#00fff9'},
+];
+const LOCKABLE_SKINS = SKINS.filter(s=>s.id!=='classic');
+
+const EVENTS = [
+  {id:'normal',        weight:34, mult:1.00, msg:null},
+  {id:'perfect_jump',  weight:10, mult:1.42, msg:'Perfect Jump!'},
+  {id:'long_leap',     weight:10, mult:1.26, msg:'Long Leap!'},
+  {id:'lucky_bounce',  weight:9,  mult:1.30, msg:'Lucky Bounce!', luckWeighted:true},
+  {id:'tiny_boost',    weight:10, mult:1.12, msg:'Tiny Boost'},
+  {id:'slip',          weight:8,  mult:0.78, msg:'Slipped!', balanceReduces:true},
+  {id:'bad_landing',   weight:7,  mult:0.82, msg:'Bad Landing', balanceReduces:true},
+  {id:'mud_splash',    weight:6,  mult:0.72, msg:'Mud Splash!'},
+  {id:'stumble',       weight:6,  mult:0.85, msg:'Stumble'},
+  {id:'dragonfly',     weight:5,  mult:0.88, msg:'Dragonfly Distraction!', reactionReduces:true},
+  {id:'late_reaction', weight:5,  mult:0.90, msg:'Late Reaction'},
+];
+const WEATHER_MODES = ['day','sunset','night','rain','morning'];
+
+/* ============================================================
+   SECTION 3 — SEEDED / PROVABLY-FAIR RNG STREAM
+   ============================================================ */
+async function buildRngBuffer(seedStr, blocks=80){
+  const out = [];
+  let current = await sha256Hex(seedStr);
+  for(let i=0;i<blocks;i++){
+    for(let j=0;j<8;j++){
+      const chunk = current.substr(j*8,8);
+      out.push(parseInt(chunk,16)/0xFFFFFFFF);
+    }
+    current = await sha256Hex(current+':'+i);
+  }
+  return out;
+}
+class RngStream{
+  constructor(buffer){ this.buf=buffer; this.i=0; }
+  next(){
+    if(this.i>=this.buf.length) return Math.random(); // generous buffer margin makes this a no-op in practice
+    return this.buf[this.i++];
+  }
+  range(min,max){ return min + this.next()*(max-min); }
+  weightedPick(items){
+    const total = items.reduce((s,it)=>s+it.weight,0);
+    let r = this.next()*total;
+    for(const it of items){ r-=it.weight; if(r<=0) return it; }
+    return items[items.length-1];
+  }
+}
+
+/* ============================================================
+   SECTION 4 — GAME STATE
+   ============================================================ */
+const State = {
+  balance: 1000,
+  raceNumber: 1,
+  selectedFrogId: null,
+  wager: 50,
+  unlockedSkins: new Set(['classic']),
+  equippedSkins: {}, // archetypeId -> skinId
+  history: [],        // {round, hash, winnerName, revealedSeed, verified}
+  lastResultByArchetype: {}, // archetypeId -> placement string
+  raceInProgress: false,
+
+  // provably fair
+  clientSeed: randomHex(4),
+  nonce: 0,
+  serverSeed: null,
+  commitHash: null,
+  rng: null,
+
+  // this round's live data
+  frogs: [],       // computed per race: {archetype, stats, multiplier, popularity}
+  weather: 'day',
+};
+
+/* ============================================================
+   SECTION 5 — ROUND SETUP (stat gen + odds + provably-fair commit)
+
+   The whole round — every frog's stats AND which frog wins — is
+   derived, in a fixed order, purely from the seeded RNG stream.
+   That derivation lives in one pure function (computeRoundFromRng)
+   so the exact same code path can be replayed after the seed is
+   revealed to prove the winner wasn't picked after the fact.
+
+   Odds design: strength is amplified (POWER) into a genuinely
+   wide spread of win probabilities, clamped to a sane player-
+   facing band, then renormalized so they still sum to 1 (i.e. the
+   six probabilities are the real ones the draw uses). Multiplier
+   is simply 0.98 / probability — so every single bet, on every
+   frog, favourite or longshot, has an identical 98% target RTP.
+   ============================================================ */
+const STRENGTH_POWER = 4.2;
+const PROB_FLOOR = 0.045;   // longest possible shot  -> ~21.8x cap
+const PROB_CEIL  = 0.62;    // strongest possible favourite -> ~1.58x floor
+const TARGET_RTP = 0.98;
+
+function computeRoundFromRng(rng){
+  const frogs = ARCHETYPES.map(arch=>{
+    const stats = {};
+    for(const k in arch.base){
+      const v = arch.base[k] + (rng.next()-0.5)*24;
+      stats[k] = Math.round(clamp(v,18,99));
+    }
+    return {archetype:arch, stats, id:arch.id};
+  });
+
+  const strengthOf = f => f.stats.speed*0.30 + f.stats.jump*0.20 + f.stats.balance*0.15 +
+                           f.stats.reaction*0.15 + f.stats.stamina*0.10 + f.stats.luck*0.10;
+  frogs.forEach(f=> f.strength = strengthOf(f));
+
+  // amplify strength gaps into a real odds spread (favourites vs longshots),
+  // then layer in an independent random jitter (seeded, so still fair &
+  // reproducible) so the odds board isn't purely predictable from stats —
+  // any frog can realistically land near the front of the pack some races.
+  const minStrength = Math.min(...frogs.map(f=>f.strength));
+  frogs.forEach(f=>{
+    const jitter = 0.5 + rng.next()*1.0; // 0.5x - 1.5x
+    f.weight = Math.pow(f.strength/minStrength, STRENGTH_POWER) * jitter;
+  });
+  const totalWeight = frogs.reduce((s,f)=>s+f.weight,0);
+  frogs.forEach(f=> f.trueProb = f.weight/totalWeight);
+
+  // clamp to a player-facing band, then renormalize so probabilities sum to 1 again
+  frogs.forEach(f=> f.trueProb = clamp(f.trueProb, PROB_FLOOR, PROB_CEIL));
+  const totalClamped = frogs.reduce((s,f)=>s+f.trueProb,0);
+  frogs.forEach(f=>{
+    f.trueProb = f.trueProb/totalClamped;
+    f.multiplier = Math.round((TARGET_RTP/f.trueProb)*100)/100;
+    f.popularity = Math.round(f.trueProb*100);
+  });
+
+  // the winner is drawn NOW, before any bet or animation exists, from the
+  // exact probabilities shown on the odds board — this is what "the odds
+  // are followed" means in practice: it's not emergent, it's the source.
+  let r = rng.next()*1; // frogs' trueProb already sums to 1
+  let winnerId = frogs[frogs.length-1].id;
+  for(const f of frogs){ r -= f.trueProb; if(r<=0){ winnerId=f.id; break; } }
+
+  return {frogs, winnerId};
+}
+
+async function prepareRound(){
+  State.serverSeed = randomHex(16);
+  const seedStr = `${State.serverSeed}:${State.clientSeed}:${State.nonce}`;
+  State.commitHash = await sha256Hex(seedStr);
+  const buffer = await buildRngBuffer(seedStr, 80);
+  State.rng = new RngStream(buffer);
+  State.seedStr = seedStr;
+
+  State.weather = pick(WEATHER_MODES);
+
+  const round = computeRoundFromRng(State.rng);
+  State.frogs = round.frogs;
+  State.predeterminedWinnerId = round.winnerId;
+
+  // update PF panel display (hash committed BEFORE bet)
+  $('#pfHashVal').textContent = State.commitHash;
+  $('#pfRevealVal').textContent = 'Hidden until race resolves';
+  $('#pfNonceVal').textContent = State.nonce;
+  $('#pfVerifyBox').classList.remove('show');
+  $('#raceNumLabel').textContent = State.raceNumber;
+
+  renderFrogGrid();
+  renderBetSlip();
+}
+
+/* ============================================================
+   SECTION 6 — LOBBY RENDERING
+   ============================================================ */
+function statBar(label,val,color){
+  return `<div class="stat-row"><span class="lbl">${label}</span><div class="bar"><i style="width:0%;background:${color}" data-w="${val}"></i></div></div>`;
+}
+function placementBadge(archId){
+  const p = State.lastResultByArchetype[archId];
+  return p ? p : '—';
+}
+function oddsTier(mult){
+  if(mult<=2.4) return {label:'FAVORITE', color:'var(--green-soft)'};
+  if(mult<=5.5) return {label:'MID ODDS', color:'var(--gold-soft)'};
+  return {label:'LONGSHOT', color:'var(--purple-soft)'};
+}
+function renderFrogGrid(){
+  const grid = $('#frogGrid');
+  grid.innerHTML = State.frogs.map((f,i)=>{
+    const a = f.archetype;
+    const skinId = State.equippedSkins[a.id]||'classic';
+    const skinName = SKINS.find(s=>s.id===skinId).name;
+    const unlockedForThis = [...State.unlockedSkins];
+    const selected = State.selectedFrogId===f.id;
+    const tier = oddsTier(f.multiplier);
+    return `
+    <div class="frog-card glass ${selected?'selected':''}" data-frog="${f.id}" style="--fc:${a.color};--fc-soft:${a.soft};animation-delay:${i*0.055}s">
+      <div class="fc-head">
+        <div class="fc-avatar"><canvas width="52" height="52" data-portrait="${f.id}"></canvas></div>
+        <div>
+          <div class="fc-name">${a.name}</div>
+          <div class="fc-skin">${skinName}</div>
+        </div>
+        <div class="fc-mult"><b style="color:${tier.color}">${f.multiplier.toFixed(2)}×</b><small style="color:${tier.color}">${tier.label}</small></div>
+      </div>
+      <div class="fc-stats">
+        ${statBar('SPD',f.stats.speed,a.color)}
+        ${statBar('JMP',f.stats.jump,a.color)}
+        ${statBar('BAL',f.stats.balance,a.color)}
+        ${statBar('REA',f.stats.reaction,a.color)}
+        ${statBar('STA',f.stats.stamina,a.color)}
+        ${statBar('LUK',f.stats.luck,a.color)}
+      </div>
+      <div class="fc-foot">
+        <div class="fc-pop">Win chance <b>${f.popularity}%</b></div>
+        <div class="fc-badge">${placementBadge(a.id)}</div>
+      </div>
+      ${unlockedForThis.length>1 ? `<div class="fc-customize">
+        <select data-skin-for="${a.id}">
+          ${unlockedForThis.map(sid=>{
+            const s = SKINS.find(x=>x.id===sid);
+            return `<option value="${sid}" ${sid===skinId?'selected':''}>${s.name}</option>`;
+          }).join('')}
+        </select>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  // paint per-frog portrait avatars
+  $$('canvas[data-portrait]',grid).forEach(cv=>{
+    const f = State.frogs.find(fr=>fr.id===cv.dataset.portrait);
+    const skinId = State.equippedSkins[f.archetype.id]||'classic';
+    const pctx = cv.getContext('2d');
+    drawFrogPortrait(pctx, f.archetype, skinId);
+  });
+
+  // animate stat bars in
+  requestAnimationFrame(()=>{
+    $$('.stat-row .bar i',grid).forEach(el=>{ el.style.width = el.dataset.w+'%'; });
+  });
+
+  $$('.frog-card',grid).forEach(card=>{
+    card.addEventListener('click',(e)=>{
+      if(e.target.closest('select')) return;
+      if(State.raceInProgress) return;
+      State.selectedFrogId = card.dataset.frog;
+      Audio1.click();
+      renderFrogGrid();
+      renderBetSlip();
+    });
+  });
+  $$('select[data-skin-for]',grid).forEach(sel=>{
+    sel.addEventListener('click',e=>e.stopPropagation());
+    sel.addEventListener('change',e=>{
+      State.equippedSkins[sel.dataset.skinFor] = sel.value;
+      renderFrogGrid();
+      renderBetSlip();
+    });
+  });
+}
+
+function selectedFrog(){ return State.frogs.find(f=>f.id===State.selectedFrogId); }
+
+function renderBetSlip(){
+  const box = $('#selectedFrogBox');
+  const f = selectedFrog();
+  if(!f){
+    box.className='selected-frog-box empty';
+    box.innerHTML = 'Select a frog to begin';
+  } else {
+    box.className='selected-frog-box';
+    box.style.setProperty('--fc',f.archetype.color);
+    const tier = oddsTier(f.multiplier);
+    box.innerHTML = `<div class="swatch" style="--fc:${f.archetype.color}"></div>
+      <div class="info"><b>${f.archetype.name}</b><span style="color:${tier.color}">${f.multiplier.toFixed(2)}× · ${tier.label} · ${f.popularity}% win chance</span></div>`;
+  }
+  updatePayoutPreview();
+  const btn = $('#betBtn');
+  const canBet = !!f && State.wager>0 && State.wager<=State.balance && !State.raceInProgress;
+  btn.disabled = !canBet;
+  btn.textContent = !f ? 'Select a Frog' : (State.wager>State.balance ? 'Insufficient Balance' : `Bet ¢${fmt(State.wager)} — Race!`);
+}
+function updatePayoutPreview(){
+  const f = selectedFrog();
+  const payout = f ? State.wager*f.multiplier : 0;
+  $('#potentialPayout').textContent = '¢'+fmt(payout);
+}
+function updateBalanceDisplay(){
+  $('#balanceVal').textContent = fmt(State.balance);
+}
+
+/* ============================================================
+   SECTION 7 — WAGER CONTROLS
+   ============================================================ */
+$('#wagerInput').addEventListener('input',e=>{
+  let v = parseInt(e.target.value)||0;
+  v = clamp(v,1,999999);
+  State.wager = v;
+  renderBetSlip();
+});
+$$('.chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const c = chip.dataset.chip;
+    let v = State.wager;
+    if(c==='half') v = Math.max(1,Math.floor(v/2));
+    else if(c==='double') v = v*2;
+    else if(c==='max') v = State.balance;
+    else v = parseInt(c);
+    v = clamp(v,1,999999);
+    State.wager = v;
+    $('#wagerInput').value = v;
+    Audio1.click();
+    renderBetSlip();
+  });
+});
+$('#resetBalanceBtn').addEventListener('click',()=>{
+  State.balance = 1000;
+  updateBalanceDisplay();
+  renderBetSlip();
+  pushToast('💰','Balance Reset','Topped back up to ¢1,000');
+});
+
+/* ============================================================
+   SECTION 8 — TOASTS
+   ============================================================ */
+function pushToast(icon,title,sub){
+  const t = document.createElement('div');
+  t.className='toast glass';
+  t.innerHTML = `<div class="ti">${icon}</div><div><b>${title}</b><span>${sub}</span></div>`;
+  $('#toasts').appendChild(t);
+  setTimeout(()=>t.remove(),3800);
+}
+
+/* ============================================================
+   SECTION 9 — PROVABLY FAIR PANEL WIRING
+   ============================================================ */
+$('#pfOpenBtn').addEventListener('click',()=>{
+  $('#pfClientSeed').value = State.clientSeed;
+  $('#pfOverlay').classList.add('show');
+});
+$('#pfCloseBtn').addEventListener('click',()=> $('#pfOverlay').classList.remove('show'));
+$('#pfOverlay').addEventListener('click',e=>{ if(e.target.id==='pfOverlay') $('#pfOverlay').classList.remove('show'); });
+$('#pfRandomizeBtn').addEventListener('click', async ()=>{
+  if(State.raceInProgress) return;
+  State.clientSeed = randomHex(4);
+  $('#pfClientSeed').value = State.clientSeed;
+  await prepareRound();
+  pushToast('🎲','Client Seed Randomized','Odds and stats recalculated');
+});
+$('#pfClientSeed').addEventListener('change', async e=>{
+  if(State.raceInProgress) return;
+  const v = e.target.value.trim();
+  if(v.length===0) return;
+  State.clientSeed = v;
+  await prepareRound();
+});
+
+function renderPfHistory(){
+  const body = $('#pfHistoryBody');
+  body.innerHTML = State.history.slice().reverse().map(h=>`
+    <tr>
+      <td>${h.round}</td>
+      <td class="hash-cell" title="${h.hash}">${h.hash.slice(0,10)}…</td>
+      <td>${h.winnerName}</td>
+      <td>${h.verified?'✅':'—'}</td>
+    </tr>`).join('');
+}
+
+/* ============================================================
+   SECTION 10 — SOUND TOGGLE
+   ============================================================ */
+$('#soundBtn').addEventListener('click',()=>{
+  const on = Audio1.toggle();
+  $('#soundBtn').textContent = on?'🔊':'🔇';
+  $('#soundBtn').classList.toggle('active',on);
+});
+
+/* ============================================================
+   SECTION 11 — CANVAS / PARTICLE / CAMERA SYSTEM
+   ============================================================ */
+const canvas = $('#raceCanvas');
+const ctx = canvas.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio||1, 2);
+let CW=900, CH=460; // logical size
+
+function resizeCanvas(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  CW = Math.max(320, rect.width - 32);
+  CH = Math.round(CW*0.5);
+  DPR = Math.min(window.devicePixelRatio||1,2);
+  canvas.width = CW*DPR; canvas.height = CH*DPR;
+  canvas.style.width = CW+'px'; canvas.style.height = CH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',()=>{ if($('#arena').classList.contains('show')) resizeCanvas(); });
+
+const Camera = {
+  zoom:1, panX:0, shake:0,
+  tZoom:1, tPanX:0,
+  update(){
+    this.zoom = lerp(this.zoom,this.tZoom,0.06);
+    this.panX = lerp(this.panX,this.tPanX,0.07);
+    this.shake *= 0.88;
+  },
+  apply(){
+    ctx.translate(CW/2,CH/2);
+    ctx.scale(this.zoom,this.zoom);
+    const sx = (rand01()-0.5)*this.shake;
+    const sy = (rand01()-0.5)*this.shake;
+    ctx.translate(-CW/2 - this.panX + sx, -CH/2 + sy);
+  }
+};
+
+// generic particle pool
+let particles = [];
+function spawnParticle(p){ particles.push(Object.assign({life:1,age:0},p)); }
+function updateParticles(dt){
+  for(const p of particles){
+    p.age += dt;
+    p.t = p.age/p.life;
+    if(p.kind==='ripple'){ p.r = lerp(p.r0,p.r1,p.t); p.alpha = 1-p.t; }
+    else if(p.kind==='droplet'){ p.vy += 420*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.alpha=1-p.t; }
+    else if(p.kind==='dust'){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.alpha=(1-p.t)*0.6; p.r=lerp(p.r0,p.r0*2.2,p.t); }
+    else if(p.kind==='confetti'){ p.vy += 260*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt; p.alpha=1-Math.max(0,p.t-0.7)/0.3; }
+    else if(p.kind==='trail'){ p.alpha = (1-p.t)*0.32; }
+    else if(p.kind==='spark'){ p.vy += 180*dt; p.vx*=(1-1.6*dt); p.x+=p.vx*dt; p.y+=p.vy*dt; p.alpha=(1-p.t); }
+  }
+  particles = particles.filter(p=>p.age<p.life);
+}
+function drawParticles(){
+  for(const p of particles){
+    ctx.save(); ctx.globalAlpha = clamp(p.alpha,0,1);
+    if(p.kind==='ripple'){
+      ctx.strokeStyle = p.color; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(p.x,p.y,p.r,p.r*0.38,0,0,Math.PI*2); ctx.stroke();
+    } else if(p.kind==='droplet'){
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    } else if(p.kind==='dust'){
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    } else if(p.kind==='confetti'){
+      ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.r,-p.r*0.5,p.r*2,p.r);
+    } else if(p.kind==='trail'){
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.ellipse(p.x,p.y,p.rx,p.ry,0,0,Math.PI*2); ctx.fill();
+    } else if(p.kind==='spark'){
+      ctx.fillStyle = p.color; ctx.shadowColor=p.color; ctx.shadowBlur=6;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+function burstLanding(x,y,color,scale){
+  scale = clamp(scale||1, 0.55, 1.7);
+  spawnParticle({kind:'ripple',x,y,r0:4,r1:34*scale,life:0.6,color});
+  spawnParticle({kind:'ripple',x,y,r0:2,r1:20*scale,life:0.45,color:'rgba(255,255,255,0.5)'});
+  const dropCount = Math.round(7*scale);
+  for(let i=0;i<dropCount;i++){
+    const ang = rand01()*Math.PI*2;
+    spawnParticle({kind:'droplet',x,y,vx:Math.cos(ang)*70*scale,vy:-Math.abs(Math.sin(ang))*140*scale-40,r:1.6+rand01()*1.6,life:0.5+rand01()*0.3,color:'rgba(160,220,255,0.85)'});
+  }
+  const dustCount = Math.round(4*scale);
+  for(let i=0;i<dustCount;i++){
+    spawnParticle({kind:'dust',x,y,vx:(rand01()-0.5)*30,vy:-10-rand01()*10,r0:3+rand01()*3*scale,life:0.5,color:'rgba(120,255,180,0.35)'});
+  }
+}
+function spawnTrail(x,y,color,rx,ry){
+  spawnParticle({kind:'trail',x,y,rx,ry,life:0.22,color});
+}
+function burstConfetti(){
+  const colors=['#39ff88','#ffc845','#b14eff','#3dfff0','#ff3d5a','#ffffff'];
+  for(let i=0;i<90;i++){
+    spawnParticle({kind:'confetti',x:CW/2+(rand01()-0.5)*140,y:-10-rand01()*40,
+      vx:(rand01()-0.5)*180,vy:60+rand01()*120,vr:(rand01()-0.5)*10,
+      rot:rand01()*Math.PI,r:3+rand01()*3,life:2.4+rand01()*0.8,color:pick(colors)});
+  }
+  for(let burst=0; burst<3; burst++){
+    const bx = CW*0.25 + burst*CW*0.25, by = CH*0.28+rand01()*CH*0.15;
+    for(let i=0;i<26;i++){
+      const ang = rand01()*Math.PI*2, sp=90+rand01()*160;
+      spawnParticle({kind:'spark',x:bx,y:by,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,
+        r:1.4+rand01()*1.6,life:0.55+rand01()*0.4,color:pick(colors)});
+    }
+  }
+}
+
+// ambient wildlife (persistent, wrap around)
+// worldPad(): the camera pans right to follow the leader, so every
+// background layer needs to extend well past the nominal [0,CW] canvas
+// width or panning exposes empty canvas at the edge. All ambient/backdrop
+// drawing below is padded by this amount on both sides.
+function worldPad(){ return Math.max(160, CW*0.5); }
+
+let fireflies=[], leaves=[], flyers=[], raindrops=[];
+function seedAmbient(){
+  const P = worldPad();
+  fireflies = State.weather==='night' ? Array.from({length:14},()=>({x:-P+rand01()*(CW+P*2),y:CH*0.3+rand01()*CH*0.5,ph:rand01()*10,sp:0.4+rand01()*0.4})) : [];
+  leaves = Array.from({length:6},()=>({x:-P+rand01()*(CW+P*2),y:rand01()*CH*0.4,sp:8+rand01()*10,ph:rand01()*10,rot:rand01()*6}));
+  flyers = Array.from({length:2},()=>({x:-P+rand01()*(CW+P*2),y:CH*0.15+rand01()*CH*0.25,ph:rand01()*10,kind:rand01()<0.5?'dragon':'butterfly'}));
+  raindrops = State.weather==='rain' ? Array.from({length:90},()=>({x:-P+rand01()*(CW+P*2),y:rand01()*CH,sp:300+rand01()*200})) : [];
+}
+
+/* ============================================================
+   SECTION 12 — ENVIRONMENT RENDERING
+   ============================================================ */
+function skyColors(mode){
+  switch(mode){
+    case 'sunset': return {top:'#2b1240',mid:'#5a2a4a',bot:'#a3512f',sun:'#ffb35c'};
+    case 'night':  return {top:'#040713',mid:'#08111f',bot:'#0c1a28',sun:null};
+    case 'rain':   return {top:'#1a222b',mid:'#212f34',bot:'#2a3a3d',sun:null};
+    case 'morning':return {top:'#233a52',mid:'#4c6e7a',bot:'#a9c2a0',sun:'#fff3c4'};
+    default:       return {top:'#123a52',mid:'#1f6a72',bot:'#3fae86',sun:'#ffe9a8'}; // day
+  }
+}
+let envTime = 0;
+function drawEnvironment(dt){
+  envTime += dt;
+  const sky = skyColors(State.weather);
+  const waterTop = CH*0.62;
+  const P = worldPad();
+
+  // sky — padded well beyond the canvas so panning never reveals empty space
+  const skyGrad = ctx.createLinearGradient(0,0,0,waterTop);
+  skyGrad.addColorStop(0,sky.top); skyGrad.addColorStop(0.55,sky.mid); skyGrad.addColorStop(1,sky.bot);
+  ctx.fillStyle = skyGrad; ctx.fillRect(-P,0,CW+P*2,waterTop);
+
+  // sun/moon
+  if(sky.sun){
+    ctx.save();
+    ctx.globalAlpha=0.9;
+    const sx = CW*0.82, sy = waterTop*0.28;
+    const g = ctx.createRadialGradient(sx,sy,2,sx,sy,70);
+    g.addColorStop(0,sky.sun); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sx,sy,70,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=sky.sun; ctx.beginPath(); ctx.arc(sx,sy,20,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  if(State.weather==='night'){
+    ctx.save(); ctx.fillStyle='rgba(255,255,255,0.8)';
+    for(let i=0;i<64;i++){
+      const sx=-P+(i*97 % Math.round(CW+P*2)), sy=(i*53 % (waterTop*0.7));
+      const tw = 0.4+0.6*Math.abs(Math.sin(envTime*2+i));
+      ctx.globalAlpha = tw*0.7;
+      ctx.fillRect(sx,sy,1.6,1.6);
+    }
+    ctx.restore();
+  }
+
+  // clouds
+  ctx.save(); ctx.globalAlpha = State.weather==='rain'?0.5:0.35;
+  for(let i=0;i<6;i++){
+    const cx = ((envTime*8*(0.3+i*0.15)) + i*260) % (CW+P*2) - P;
+    const cy = 30+i*18;
+    ctx.fillStyle = State.weather==='night'?'rgba(160,180,220,0.15)':'#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,38,14,0,0,Math.PI*2);
+    ctx.ellipse(cx+26,cy+4,26,11,0,0,Math.PI*2);
+    ctx.ellipse(cx-24,cy+5,24,10,0,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // distant reeds silhouette
+  ctx.save();
+  ctx.fillStyle = 'rgba(4,14,10,0.55)';
+  const reedCount = 26;
+  for(let i=0;i<reedCount;i++){
+    const rx = -P + (i/reedCount)*(CW+P*2) + Math.sin(i*13)*8;
+    const sway = Math.sin(envTime*1.4+i)*4;
+    ctx.beginPath();
+    ctx.moveTo(rx,waterTop);
+    ctx.quadraticCurveTo(rx+sway,waterTop-30,rx+sway*1.4,waterTop-52);
+    ctx.lineTo(rx+sway*1.4+3,waterTop-52);
+    ctx.quadraticCurveTo(rx+sway+3,waterTop-30,rx+3,waterTop);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // water — padded to match the sky
+  const waterGrad = ctx.createLinearGradient(0,waterTop,0,CH);
+  if(State.weather==='night'){ waterGrad.addColorStop(0,'#0a2530'); waterGrad.addColorStop(1,'#041018'); }
+  else if(State.weather==='sunset'){ waterGrad.addColorStop(0,'#7a3f52'); waterGrad.addColorStop(1,'#2c1830'); }
+  else { waterGrad.addColorStop(0,'#1c7c8c'); waterGrad.addColorStop(1,'#0a3844'); }
+  ctx.fillStyle = waterGrad; ctx.fillRect(-P,waterTop,CW+P*2,CH-waterTop);
+
+  // water ripple bands
+  ctx.save(); ctx.globalAlpha=0.16; ctx.strokeStyle='#bff5ff';
+  for(let band=0; band<5; band++){
+    ctx.beginPath();
+    const by = waterTop + 12 + band*((CH-waterTop-12)/5);
+    let first = true;
+    for(let x=-P;x<=CW+P;x+=14){
+      const yy = by + Math.sin(x*0.05 + envTime*1.6 + band)*2.4;
+      first? ctx.moveTo(x,yy): ctx.lineTo(x,yy);
+      first = false;
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // rain
+  if(State.weather==='rain'){
+    ctx.save(); ctx.strokeStyle='rgba(200,220,255,0.5)'; ctx.lineWidth=1;
+    for(const r of raindrops){
+      r.y += r.sp*dt; r.x -= r.sp*0.15*dt;
+      if(r.y>CH){ r.y=-10; r.x=-P+rand01()*(CW+P*2); }
+      ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(r.x-4,r.y+12); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // fog (occasional, more likely morning/night)
+  const fogChance = (State.weather==='morning'||State.weather==='night') ? 1 : 0.4;
+  if(fogChance>0.4 || State._fogSeeded){
+    ctx.save();
+    const fogX = (Math.sin(envTime*0.15)*40);
+    const g = ctx.createLinearGradient(0,waterTop-30,0,waterTop+40);
+    g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(0.5,'rgba(230,240,240,0.12)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(fogX-P,waterTop-30,CW+P*2,70);
+    ctx.restore();
+  }
+
+  // fireflies
+  for(const f of fireflies){
+    const yy = f.y + Math.sin(envTime*f.sp+f.ph)*8;
+    const xx = f.x + Math.cos(envTime*f.sp*0.7+f.ph)*10;
+    const glow = 0.5+0.5*Math.sin(envTime*3+f.ph);
+    ctx.save(); ctx.globalAlpha = 0.5*glow+0.2;
+    ctx.fillStyle='#ffe08a'; ctx.shadowColor='#ffe08a'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.arc(xx,yy,1.8,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // leaves
+  for(const lf of leaves){
+    lf.x -= lf.sp*dt; if(lf.x<-P-20){ lf.x=CW+P+20; lf.y=rand01()*CH*0.4; }
+    const yy = lf.y + Math.sin(envTime+lf.ph)*6;
+    ctx.save(); ctx.translate(lf.x,yy); ctx.rotate(envTime+lf.rot); ctx.globalAlpha=0.55;
+    ctx.fillStyle='#3d8a4f'; ctx.beginPath(); ctx.ellipse(0,0,6,3,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // dragonfly / butterfly
+  for(const fl of flyers){
+    const xx = -P + ((fl.x+P) + envTime*22 + Math.sin(envTime*2+fl.ph)*40) % (CW+P*2);
+    const yy = fl.y + Math.sin(envTime*3+fl.ph)*14;
+    ctx.save(); ctx.translate(xx,yy); ctx.globalAlpha=0.85;
+    const wingFlap = Math.sin(envTime*20+fl.ph);
+    if(fl.kind==='dragon'){
+      ctx.fillStyle='rgba(160,255,220,0.7)';
+      ctx.fillRect(-8,-0.6,16,1.2);
+      ctx.save(); ctx.scale(1,0.3+Math.abs(wingFlap)*0.7);
+      ctx.beginPath(); ctx.ellipse(0,-2,6,2,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0,2,6,2,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fillStyle='rgba(255,180,220,0.8)';
+      const flap = 4+wingFlap*3;
+      ctx.beginPath(); ctx.ellipse(-3,0,flap,3.4,0.3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(3,0,flap,3.4,-0.3,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  return waterTop;
+}
+
+/* ============================================================
+   SECTION 13 — FROG RENDERING
+   ============================================================ */
+function drawAccessory(c,x,y,scale,skinId,color){
+  c.save(); c.translate(x,y); c.scale(scale,scale);
+  c.lineWidth=1.4;
+  switch(skinId){
+    case 'ninja':
+      c.fillStyle='#222'; c.fillRect(-10,-4,20,4.5);
+      break;
+    case 'pirate':
+      c.fillStyle='#1a1a1a'; c.beginPath(); c.ellipse(0,-6,11,5,0,Math.PI,Math.PI*2); c.fill();
+      c.fillStyle='#e0d8b0'; c.beginPath(); c.arc(-4,-8,1.6,0,Math.PI*2); c.fill();
+      break;
+    case 'king':
+      c.fillStyle='#ffd23d'; c.beginPath();
+      c.moveTo(-9,-6); c.lineTo(-9,-13); c.lineTo(-5,-8); c.lineTo(0,-15); c.lineTo(5,-8); c.lineTo(9,-13); c.lineTo(9,-6); c.closePath(); c.fill();
+      break;
+    case 'alien': c.strokeStyle='#7CFC00'; c.beginPath(); c.arc(0,-10,4,0,Math.PI*2); c.stroke(); break;
+    case 'zombie': c.strokeStyle='#6b8e23'; c.beginPath(); c.moveTo(-6,-8); c.lineTo(-2,-4); c.moveTo(4,-9); c.lineTo(8,-5); c.stroke(); break;
+    case 'robot':
+      c.fillStyle='#9aa5b1'; c.fillRect(-9,-8,18,6);
+      c.fillStyle='#3dfff0'; c.fillRect(-6,-6,4,2); c.fillRect(2,-6,4,2);
+      break;
+    case 'samurai':
+      c.fillStyle='#c0392b'; c.beginPath(); c.moveTo(-10,-4); c.lineTo(0,-14); c.lineTo(10,-4); c.closePath(); c.fill();
+      break;
+    case 'wizard':
+      c.fillStyle='#8e44ad'; c.beginPath(); c.moveTo(-9,-4); c.lineTo(2,-22); c.lineTo(9,-4); c.closePath(); c.fill();
+      c.fillStyle='#ffd23d'; c.beginPath(); c.arc(2,-16,1.4,0,Math.PI*2); c.fill();
+      break;
+    case 'cowboy':
+      c.fillStyle='#a0522d'; c.beginPath(); c.ellipse(0,-6,12,3,0,0,Math.PI*2); c.fill();
+      c.fillRect(-5,-13,10,6);
+      break;
+    case 'detective':
+      c.fillStyle='#5d4037'; c.beginPath(); c.moveTo(-10,-5); c.lineTo(-10,-11); c.lineTo(10,-11); c.lineTo(10,-5); c.closePath(); c.fill();
+      break;
+    case 'astronaut':
+      c.strokeStyle='#e0e0e0'; c.lineWidth=2; c.beginPath(); c.arc(0,-6,10,0,Math.PI*2); c.stroke();
+      break;
+    case 'disco':
+      c.fillStyle='rgba(255,0,255,0.55)'; c.beginPath(); c.arc(0,-8,6,0,Math.PI*2); c.fill();
+      c.fillStyle='#fff'; c.beginPath(); c.arc(-2,-10,1,0,Math.PI*2); c.fill();
+      break;
+    case 'cyberpunk':
+      c.strokeStyle='#00fff9'; c.lineWidth=2; c.beginPath(); c.moveTo(-9,-9); c.lineTo(9,-9); c.stroke();
+      break;
+  }
+  c.restore();
+}
+
+// static front-facing portrait used for the small frog-card avatars
+function drawFrogPortrait(pctx, arch, skinId){
+  const color=arch.color, soft=arch.soft;
+  pctx.clearRect(0,0,52,52);
+  pctx.save();
+  pctx.translate(26,29);
+  pctx.strokeStyle=color; pctx.lineWidth=3; pctx.lineCap='round';
+  pctx.beginPath(); pctx.moveTo(-8,5); pctx.quadraticCurveTo(-17,4,-16,13); pctx.stroke();
+  pctx.beginPath(); pctx.moveTo(8,5); pctx.quadraticCurveTo(17,4,16,13); pctx.stroke();
+  const g = pctx.createRadialGradient(-4,-7,2,0,0,17);
+  g.addColorStop(0,soft); g.addColorStop(1,color);
+  pctx.fillStyle=g;
+  pctx.beginPath(); pctx.ellipse(0,0,15,12,0,0,Math.PI*2); pctx.fill();
+  pctx.fillStyle='rgba(255,255,255,0.26)';
+  pctx.beginPath(); pctx.ellipse(0,5,9,6,0,0,Math.PI*2); pctx.fill();
+  pctx.fillStyle=color;
+  pctx.beginPath(); pctx.ellipse(-7,-10,5.2,5.2,0,0,Math.PI*2); pctx.fill();
+  pctx.beginPath(); pctx.ellipse(7,-10,5.2,5.2,0,0,Math.PI*2); pctx.fill();
+  pctx.fillStyle='#08130f';
+  pctx.beginPath(); pctx.arc(-7,-10,2.1,0,Math.PI*2); pctx.fill();
+  pctx.beginPath(); pctx.arc(7,-10,2.1,0,Math.PI*2); pctx.fill();
+  pctx.fillStyle='rgba(255,255,255,0.9)';
+  pctx.beginPath(); pctx.arc(-7.9,-11,0.8,0,Math.PI*2); pctx.fill();
+  pctx.beginPath(); pctx.arc(6.1,-11,0.8,0,Math.PI*2); pctx.fill();
+  pctx.strokeStyle='rgba(0,0,0,0.4)'; pctx.lineWidth=1;
+  pctx.beginPath(); pctx.arc(0,1,8,0.15*Math.PI,0.85*Math.PI); pctx.stroke();
+  pctx.restore();
+  if(skinId && skinId!=='classic') drawAccessory(pctx,26,20,0.82,skinId,color);
+}
+
+function drawFrog(fr, time){
+  const a = fr.archetype;
+  const color = a.color, soft = a.soft;
+  const skinId = State.equippedSkins[a.id]||'classic';
+
+  // hop pose calc — takeoff leans back, apex levels out, landing dives forward
+  let hopT = 0, height=0, squashX=1, squashY=1, tilt=0;
+  if(fr.anim==='hop'){
+    hopT = clamp((time - fr.hopStart)/fr.hopDur, 0, 1);
+    if(hopT<0.15){
+      const p=hopT/0.15; squashX=lerp(1,1.14,p); squashY=lerp(1,0.82,p); tilt=lerp(0,-0.10,p);
+    } else if(hopT<0.85){
+      const p=(hopT-0.15)/0.7; height=Math.sin(p*Math.PI)*fr.hopHeight;
+      squashX=lerp(1.14,0.87,p); squashY=lerp(0.82,1.18,p); tilt=lerp(-0.10,0.24,p);
+    } else {
+      const p=(hopT-0.85)/0.15; squashX=lerp(0.87,1.08,p); squashY=lerp(1.18,0.86,p); tilt=lerp(0.24,0.02,p);
+    }
+  } else if(fr.anim==='idle'){
+    const wob = (fr.settleWobble||0);
+    const b = Math.sin(time*3+fr.seedPhase)*0.02 + Math.sin(time*24+fr.seedPhase)*0.05*wob;
+    squashY = 1+b; squashX = 1-b*0.5; tilt = Math.sin(time*20+fr.seedPhase)*0.04*wob;
+  } else if(fr.anim==='celebrate'){
+    const b = Math.abs(Math.sin(time*6));
+    height = b*10; squashY = lerp(1,1.15,b); squashX=lerp(1,0.9,b); tilt=Math.sin(time*6)*0.15;
+  } else if(fr.anim==='defeat'){
+    tilt = 0.16; squashY=0.92;
+  }
+
+  const x = fr.drawX, y = fr.laneY - height;
+  const shadowScale = 1-height/60;
+
+  // shadow
+  ctx.save();
+  ctx.globalAlpha = clamp(0.35*shadowScale,0.08,0.35);
+  ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(x, fr.laneY+8, 14*squashX, 4*squashX, 0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(tilt);
+  ctx.scale(squashX,squashY);
+
+  // back legs
+  ctx.strokeStyle = color; ctx.lineWidth=3.4; ctx.lineCap='round';
+  const legSpread = fr.anim==='hop' && hopT>0.15 && hopT<0.85 ? 9 : 4;
+  ctx.beginPath(); ctx.moveTo(-7,4); ctx.quadraticCurveTo(-16,2+legSpread*0.3,-14-legSpread,10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(7,4); ctx.quadraticCurveTo(16,2+legSpread*0.3,14+legSpread,10); ctx.stroke();
+
+  // body
+  const bodyGrad = ctx.createRadialGradient(-4,-6,2,0,0,16);
+  bodyGrad.addColorStop(0,soft); bodyGrad.addColorStop(1,color);
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath(); ctx.ellipse(0,0,13,10,0,0,Math.PI*2); ctx.fill();
+
+  // belly
+  ctx.fillStyle='rgba(255,255,255,0.28)';
+  ctx.beginPath(); ctx.ellipse(0,4,8,5,0,0,Math.PI*2); ctx.fill();
+
+  // front legs
+  ctx.strokeStyle=color; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-8,2); ctx.lineTo(-13,8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(8,2); ctx.lineTo(13,8); ctx.stroke();
+
+  // eyes
+  const blink = (Math.sin(time*1.3+fr.seedPhase*3)>0.965) ? 0.15 : 1;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.ellipse(-6,-9,4.4,4.4*blink,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(6,-9,4.4,4.4*blink,0,0,Math.PI*2); ctx.fill();
+  if(blink>0.5){
+    ctx.fillStyle='#08130f';
+    ctx.beginPath(); ctx.arc(-6,-9,1.9,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-9,1.9,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(-6.8,-10,0.7,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5.2,-10,0.7,0,Math.PI*2); ctx.fill();
+  }
+
+  // mouth
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(0,0,7,0.15*Math.PI,0.85*Math.PI); ctx.stroke();
+
+  ctx.restore();
+
+  // accessory (skin) drawn above head, unscaled by squash for stability
+  if(skinId!=='classic'){
+    drawAccessory(ctx,x,y-8,1,skinId,color);
+  }
+
+  // selection ring — replaces on-canvas text as the "this is your frog" cue
+  if(fr.isSelected){
+    ctx.save();
+    ctx.globalAlpha = 0.55+Math.sin(time*4)*0.15;
+    ctx.strokeStyle = '#8dffbf'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.ellipse(x, fr.laneY+8, 19, 6, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // name tag
+  ctx.save();
+  ctx.globalAlpha=0.85;
+  ctx.font='10px "Consolas",monospace';
+  ctx.textAlign='center';
+  ctx.fillStyle = fr.isSelected? '#8dffbf' : 'rgba(255,255,255,0.55)';
+  ctx.fillText(a.name.split(' ')[0], x, fr.laneY+22);
+  ctx.restore();
+}
+
+/* ============================================================
+   SECTION 14 — RACE SIMULATION
+   ============================================================ */
+const RACE_LENGTH = 1000;
+let raceFrogs = [];
+let raceStartTs = 0;
+let raceResolved = false;
+let winnerFrogId = null;
+let raceAnimReq = null;
+let slowMoUntil = 0;
+let camFollowLock = false;
+
+function pickEvent(fr){
+  const stats = fr.stats;
+  const pool = EVENTS.map(ev=>{
+    let w = ev.weight;
+    if(ev.luckWeighted) w *= (0.4+stats.luck/60);
+    if(ev.balanceReduces) w *= (1.5-stats.balance/100);
+    if(ev.reactionReduces) w *= (1.5-stats.reaction/100);
+    return {...ev, weight:Math.max(0.5,w)};
+  });
+  return State.rng.weightedPick(pool);
+}
+
+function startRaceSimulation(){
+  raceResolved = false; winnerFrogId=null; particles=[]; flashAlpha=0;
+  const laneCount = State.frogs.length;
+  const trackTop = CH*0.62 + 14;
+  const trackBottom = CH - 18;
+  const laneGap = (trackBottom-trackTop)/laneCount;
+
+  raceFrogs = State.frogs.map((f,i)=>{
+    // Only the predetermined winner can ever reach the true finish line.
+    // Every other frog gets its own randomized cap short of it — they race
+    // at full, organic, stat-driven speed and can look right on the winner's
+    // heels, they just asymptotically can't quite reach the line first.
+    // This is what makes the displayed odds the *actual* odds.
+    const isWinner = f.id===State.predeterminedWinnerId;
+    const cap = isWinner ? RACE_LENGTH : RACE_LENGTH*(0.80+rand01()*0.185);
+    return {
+      ...f,
+      pos:0, drawX:70, laneY:trackTop+laneGap*i+laneGap/2,
+      anim:'idle', hopStart:0, hopDur:0.6, hopHeight:14+f.stats.jump*0.12,
+      seedPhase:rand01()*10,
+      nextHopAt: 0.3+rand01()*0.5,
+      finished:false, finishTime:null,
+      isSelected: f.id===State.selectedFrogId,
+      isWinner, cap,
+      vTilt:0, vTiltTarget:0, settleWobble:0,
+    };
+  });
+  seedAmbient();
+}
+
+function scheduleHop(fr, t){
+  const stats = fr.stats;
+  const ev = pickEvent(fr);
+  const base = 46 + stats.speed*0.42;
+  const fatigue = fr.pos>RACE_LENGTH*0.6 ? (0.72+0.28*stats.stamina/100) : 1;
+  const variance = 0.85 + State.rng.next()*(0.30 + stats.aggression*0.002);
+  let dist = base * ev.mult * variance * fatigue;
+
+  if(fr.isWinner){
+    fr.pos = clamp(fr.pos+dist, 0, RACE_LENGTH);
+  } else {
+    // soft-clamp: asymptotically approaches this frog's personal cap,
+    // slowing down naturally the closer it gets (never a hard wall)
+    const remaining = Math.max(0, fr.cap - fr.pos);
+    const actualDist = dist * (remaining/(remaining+dist));
+    fr.pos = clamp(fr.pos+actualDist, 0, fr.cap);
+  }
+
+  fr.hopStart = t;
+  fr.hopDur = clamp(0.62 - stats.reaction*0.0022 + State.rng.next()*0.12, 0.36, 0.85);
+  fr.anim='hop';
+  fr.lastHopDist = dist;
+  const recoveryFactor = 1 - stats.recovery*0.003;
+  fr.nextHopAt = t + fr.hopDur + 0.08*recoveryFactor + (ev.id==='late_reaction'?0.25:0);
+}
+
+function drawFinishLine(waterTop, trackRight){
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.setLineDash([6,6]); ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(trackRight,waterTop+6); ctx.lineTo(trackRight,CH-10); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ffc845'; ctx.font='bold 11px "Consolas",monospace';
+  ctx.save(); ctx.translate(trackRight+4,waterTop+2); ctx.rotate(0);
+  ctx.fillText('FINISH',0,10);
+  ctx.restore();
+  ctx.restore();
+}
+
+function raceLoop(ts){
+  if(!raceLoop._last) raceLoop._last = ts;
+  let dt = (ts - raceLoop._last)/1000;
+  raceLoop._last = ts;
+  const nowSlow = performance.now() < slowMoUntil;
+  if(nowSlow) dt *= 0.28;
+  dt = Math.min(dt, 0.05);
+  const elapsed = (ts - raceStartTs)/1000;
+
+  ctx.clearRect(0,0,CW,CH);
+  ctx.save();
+  Camera.update();
+  Camera.apply();
+
+  const waterTop = drawEnvironment(dt);
+  const trackLeft=70, trackRight=CW-60;
+  drawFinishLine(waterTop, trackRight);
+
+  // lane lily-pad stepping markers
+  ctx.save(); ctx.globalAlpha=0.5;
+  for(let i=0;i<raceFrogs.length;i++){
+    const lane = raceFrogs[i];
+    for(let s=0;s<6;s++){
+      const px = trackLeft + (s/5)*(trackRight-trackLeft);
+      ctx.fillStyle='rgba(60,180,120,0.35)';
+      ctx.beginPath(); ctx.ellipse(px,lane.laneY,13,5,0,0,Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // advance frogs
+  let leaderX = trackLeft;
+  for(const fr of raceFrogs){
+    if(fr.settleWobble) fr.settleWobble *= Math.pow(0.006, dt);
+
+    if(!fr.finished){
+      if(elapsed >= fr.nextHopAt && fr.anim!=='hop'){
+        scheduleHop(fr, elapsed);
+        fr.trailAcc = 0;
+      }
+      if(fr.anim==='hop'){
+        const hopT = clamp((elapsed-fr.hopStart)/fr.hopDur,0,1);
+
+        // faint motion trail while airborne — speed cue instead of text
+        if(hopT>0.16 && hopT<0.84){
+          fr.trailAcc = (fr.trailAcc||0) + dt;
+          if(fr.trailAcc>=0.045){
+            fr.trailAcc = 0;
+            spawnTrail(fr.drawX, fr.laneY - Math.sin((hopT-0.15)/0.7*Math.PI)*fr.hopHeight, fr.archetype.color+'55', 8, 5);
+          }
+        }
+
+        if(hopT>=0.83 && !fr._landed){
+          fr._landed = true;
+          const impact = clamp(fr.hopHeight/22, 0.55, 1.7);
+          burstLanding(fr.drawX, fr.laneY+6, fr.archetype.color, impact);
+          if(rand01()<0.5) Audio1.splash();
+          const shakeAmt = (fr.isSelected?1:0.4) * impact * 2.1;
+          Camera.shake = Math.min(Camera.shake+shakeAmt, 7);
+        }
+        if(hopT>=1){ fr.anim='idle'; fr._landed=false; fr.settleWobble=1; }
+      }
+      fr.drawX = trackLeft + (fr.pos/RACE_LENGTH)*(trackRight-trackLeft);
+      if(fr.pos>=RACE_LENGTH && !fr.finished){
+        fr.finished = true; fr.finishTime = elapsed; fr.anim='idle';
+        if(!winnerFrogId){
+          winnerFrogId = fr.id;
+          triggerFinish(fr);
+        }
+      }
+    }
+    if(fr.drawX>leaderX) leaderX = fr.drawX;
+  }
+
+  // camera: follow the leader only — no special zoom/lock at the finish
+  // (the celebration moves to the podium scene instead)
+  if(!winnerFrogId){
+    Camera.tPanX = clamp(leaderX - CW/2, -20, trackRight-CW/2+60);
+    Camera.tZoom = 1.04;
+  }
+
+  // draw frogs back-to-front by laneY for natural stacking (not required but consistent)
+  for(const fr of raceFrogs){ drawFrog(fr, elapsed); }
+
+  updateParticles(dt);
+  drawParticles();
+
+  ctx.restore(); // camera
+
+  // screen-space finish flash (unaffected by camera zoom/pan)
+  if(flashAlpha>0.01){
+    ctx.save(); ctx.globalAlpha = flashAlpha; ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,CW,CH); ctx.restore();
+    flashAlpha *= 0.86;
+  }
+
+  $('#raceTimer').textContent = elapsed.toFixed(1)+'s';
+
+  const allDone = raceFrogs.every(f=>f.finished) || elapsed>16.5;
+  if(winnerFrogId && (allDone || elapsed - (raceFrogs.find(f=>f.id===winnerFrogId).finishTime) > 1.1)){
+    finishRaceSequence();
+    return;
+  }
+  raceAnimReq = requestAnimationFrame(raceLoop);
+}
+
+let flashAlpha = 0;
+function triggerFinish(winnerFr){
+  Audio1.go(); Audio1.fanfare();
+  slowMoUntil = performance.now()+700;
+  flashAlpha = 0.6;
+  burstConfetti();
+  winnerFr.anim='celebrate';
+}
+
+function getRanking(){
+  return raceFrogs.slice().sort((a,b)=> (b.pos - a.pos) || ((a.finishTime||99) - (b.finishTime||99)));
+}
+
+function finishRaceSequence(){
+  cancelAnimationFrame(raceAnimReq);
+  raceFrogs.forEach(f=>{ if(f.id!==winnerFrogId) f.anim='defeat'; });
+  setTimeout(()=> playPodiumCeremony(), 550);
+}
+
+/* ---- podium ceremony: gold / silver / bronze, no camera movement ---- */
+function easeOutBack(t){
+  const c1=1.70158, c3=c1+1;
+  return 1 + c3*Math.pow(t-1,3) + c1*Math.pow(t-1,2);
+}
+function roundRectPath(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+function drawPedestal(cx, baseY, w, h, topColor, sideColor){
+  ctx.save();
+  const grad = ctx.createLinearGradient(cx-w/2,0,cx+w/2,0);
+  grad.addColorStop(0, sideColor); grad.addColorStop(0.5, topColor); grad.addColorStop(1, sideColor);
+  ctx.fillStyle = grad;
+  roundRectPath(ctx, cx-w/2, baseY-h, w, h, 9);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  roundRectPath(ctx, cx-w/2, baseY-h, w, h, 9);
+  ctx.fill();
+  ctx.globalCompositeOperation='lighter';
+  ctx.fillStyle = topColor;
+  ctx.globalAlpha = 0.55;
+  ctx.beginPath(); ctx.ellipse(cx, baseY-h, w/2, 9, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawPodiumBackdrop(t, focusX){
+  const g = ctx.createLinearGradient(0,0,0,CH);
+  g.addColorStop(0,'#070912'); g.addColorStop(0.6,'#0c1420'); g.addColorStop(1,'#0a1a16');
+  ctx.fillStyle=g; ctx.fillRect(0,0,CW,CH);
+
+  // slow-sweeping spotlight beams converging on the gold pedestal
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<3;i++){
+    const sway = Math.sin(t*0.35+i*2.1)*40;
+    const topX = focusX + sway + (i-1)*90;
+    const grad = ctx.createLinearGradient(topX,0,focusX,CH*0.9);
+    grad.addColorStop(0,'rgba(255,232,170,0.10)');
+    grad.addColorStop(1,'rgba(255,232,170,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(topX-70,0); ctx.lineTo(topX+70,0);
+    ctx.lineTo(focusX+130,CH*0.92); ctx.lineTo(focusX-130,CH*0.92);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // twinkling stars
+  ctx.save();
+  for(let i=0;i<50;i++){
+    const sx=(i*67)%CW, sy=(i*41)%(CH*0.62);
+    const tw = 0.35+0.65*Math.abs(Math.sin(t*2.4+i*1.7));
+    ctx.globalAlpha = tw*0.55;
+    ctx.fillStyle='#fff';
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+  ctx.restore();
+
+  // soft drifting bokeh
+  ctx.save();
+  const colors=['#39ff88','#b14eff','#ffc845','#3dfff0'];
+  for(let i=0;i<6;i++){
+    const bx = (CW*((i*173)%100)/100 + Math.sin(t*0.2+i)*30);
+    const by = CH*0.15 + (i*53)%(CH*0.35);
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = colors[i%colors.length];
+    ctx.beginPath(); ctx.arc(bx,by,26,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // stage floor sheen
+  const floorY = CH*0.86;
+  const fg = ctx.createLinearGradient(0,floorY,0,CH);
+  fg.addColorStop(0,'rgba(255,255,255,0.05)'); fg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=fg; ctx.fillRect(0,floorY,CW,CH-floorY);
+}
+
+function playPodiumCeremony(){
+  const ranking = getRanking();
+  const top3 = ranking.slice(0,3);
+  if(top3.length<3){ resolveRaceOutcome(); return; }
+
+  const baseY = CH*0.86;
+  const layout = [
+    {frog:top3[1], cx:CW/2-118, w:92, h:64, top:'#dfe6ec', side:'#8f9aa6', medal:'🥈', scale:1.0,  revealAt:0.50},
+    {frog:top3[0], cx:CW/2,     w:106,h:96, top:'#ffe9a8', side:'#c9902c', medal:'🥇', scale:1.16, revealAt:0.05},
+    {frog:top3[2], cx:CW/2+118, w:92, h:46, top:'#e8b48a', side:'#9a6b3f', medal:'🥉', scale:0.94, revealAt:0.90},
+  ];
+  layout.forEach(l=>{ l.popDur=0.4; l.popped=false; });
+
+  let start = null;
+  const TOTAL = 3.1;
+
+  function step(ts){
+    if(start===null) start = ts;
+    const t = (ts-start)/1000;
+
+    ctx.clearRect(0,0,CW,CH);
+    drawPodiumBackdrop(t, CW/2);
+
+    for(const l of layout){
+      drawPedestal(l.cx, baseY, l.w, l.h, l.top, l.side);
+    }
+
+    layout.forEach(l=>{
+      const p = clamp((t-l.revealAt)/l.popDur,0,1);
+      if(p<=0) return;
+      if(p>=1 && !l.popped){
+        l.popped = true;
+        Audio1.unlock();
+        if(l===layout[1]){ flashAlpha=0.4; burstConfetti(); Audio1.fanfare(); }
+      }
+      const s = easeOutBack(Math.min(p,1)) * l.scale;
+      const fr = l.frog;
+      const drawX = l.cx, laneY = baseY - l.h - 4;
+      const snap = {
+        archetype:fr.archetype, id:fr.id, isSelected:fr.isSelected,
+        drawX, laneY, anim:'idle', hopStart:0, hopDur:0.6,
+        hopHeight:0, seedPhase:fr.seedPhase, settleWobble:0,
+      };
+      ctx.save();
+      ctx.globalAlpha = clamp(p*2.2,0,1);
+      ctx.translate(drawX,laneY);
+      ctx.scale(s,s);
+      ctx.translate(-drawX,-laneY);
+      drawFrog(snap, t);
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = clamp(p*2.2,0,1);
+      ctx.font='20px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(l.medal, drawX, laneY-30*s);
+      ctx.font='11px "Consolas",monospace'; ctx.fillStyle='rgba(255,255,255,0.85)';
+      ctx.fillText(fr.archetype.name.split(' ')[0], drawX, baseY-l.h*0.5+4);
+      if(fr.isSelected){
+        ctx.fillStyle='#8dffbf'; ctx.font='bold 9.5px "Consolas",monospace';
+        ctx.fillText('YOUR FROG', drawX, baseY-l.h*0.5+18);
+      }
+      ctx.restore();
+    });
+
+    updateParticles(Math.min((ts-(step._last||ts))/1000,0.05));
+    drawParticles();
+    step._last = ts;
+
+    if(flashAlpha>0.01){
+      ctx.save(); ctx.globalAlpha=flashAlpha; ctx.fillStyle='#fff'; ctx.fillRect(0,0,CW,CH); ctx.restore();
+      flashAlpha *= 0.86;
+    }
+
+    if(t<TOTAL){
+      requestAnimationFrame(step);
+    } else {
+      resolveRaceOutcome();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================================
+   SECTION 15 — OUTCOME RESOLUTION, PAYOUT, MODAL
+   ============================================================ */
+async function resolveRaceOutcome(){
+  const ranking = getRanking();
+  ranking.forEach((f,i)=>{
+    const place = i+1;
+    const label = place===1?'🥇 1st Last Race': place===2?'🥈 2nd Last Race': place===3?'🥉 3rd Last Race': `${place}th Last Race`;
+    State.lastResultByArchetype[f.archetype.id] = label;
+  });
+  const winner = ranking[0];
+  const selected = ranking.find(f=>f.id===State.selectedFrogId);
+  const won = selected && selected.id===winner.id;
+  let payout = 0;
+  if(won){
+    payout = Math.round(State.wager*selected.multiplier);
+    State.balance += payout;
+    Audio1.coin();
+  } else {
+    Audio1.loseTone();
+  }
+  updateBalanceDisplay();
+
+  // reveal provably fair seed + verify: re-hash it AND replay the exact same
+  // derivation (stats + weighted winner draw) to prove the result was fixed
+  // before the bet, not chosen afterward.
+  $('#pfRevealVal').textContent = State.serverSeed;
+  const rehash = await sha256Hex(State.seedStr);
+  const hashOk = rehash===State.commitHash;
+  const replayBuffer = await buildRngBuffer(State.seedStr, 80);
+  const replay = computeRoundFromRng(new RngStream(replayBuffer));
+  const winnerOk = replay.winnerId === State.predeterminedWinnerId;
+  const verified = hashOk && winnerOk;
+  $('#pfVerifyBox').classList.toggle('show', true);
+  $('#pfVerifyBox').innerHTML = verified
+    ? `✅ Re-hashed server seed matches the commitment, and replaying it reproduces the same winner (${winner.archetype.name}).`
+    : '⚠️ Verification failed.';
+
+  State.history.push({round:State.raceNumber, hash:State.commitHash, winnerName:winner.archetype.name, revealedSeed:State.serverSeed, verified});
+  renderPfHistory();
+
+  // skin unlock chance
+  const locked = LOCKABLE_SKINS.filter(s=>!State.unlockedSkins.has(s.id));
+  if(locked.length && rand01()<0.18){
+    const s = pick(locked);
+    State.unlockedSkins.add(s.id);
+    Audio1.unlock();
+    pushToast('🎁','Skin Unlocked!',`${s.name} is now available`);
+  }
+
+  showResultModal(won, payout, selected, ranking);
+
+  // advance round bookkeeping for next race
+  State.raceNumber++;
+  State.nonce++;
+  State.raceInProgress = false;
+}
+
+function standingRow(f,i,youId){
+  const place = ['🥇','🥈','🥉'][i] || (i+1)+'.';
+  return `<div class="standing-row ${f.id===youId?'you':''}">
+    <div class="pos">${place}</div>
+    <div class="sw" style="background:${f.archetype.color}"></div>
+    <div class="nm">${f.archetype.name}</div>
+  </div>`;
+}
+
+function showResultModal(won,payout,selected,ranking){
+  $('#resultBadge').textContent = won?'🏆':'🐸';
+  $('#resultTitle').className = 'result-title '+(won?'win':'lose');
+  $('#resultTitle').textContent = won? 'You Win!' : 'Not This Time';
+  const winner = ranking[0];
+  $('#resultSub').textContent = won
+    ? `${winner.archetype.name} crossed the finish line first!`
+    : `${winner.archetype.name} won — your frog placed ${ordinal(ranking.findIndex(f=>f.id===selected.id)+1)}.`;
+
+  const amt = $('#payoutAmount');
+  if(won){
+    amt.className='payout-amount';
+    animateCount(amt, 0, payout, 900, v=>'+¢'+fmt(v));
+  } else {
+    amt.className='payout-amount neg';
+    amt.textContent = '-¢'+fmt(State.wager);
+  }
+
+  $('#standingsBox').innerHTML = ranking.map((f,i)=>standingRow(f,i,State.selectedFrogId)).join('');
+  $('#resultOverlay').classList.add('show');
+}
+function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function animateCount(el,from,to,dur,fmtFn){
+  const t0=performance.now();
+  function step(ts){
+    const p = clamp((ts-t0)/dur,0,1);
+    const v = lerp(from,to,easeOutCubic(p));
+    el.textContent = fmtFn(v);
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================================
+   SECTION 16 — RACE FLOW: countdown, transitions
+   ============================================================ */
+async function beginRaceFlow(){
+  if(State.raceInProgress) return;
+  const f = selectedFrog();
+  if(!f || State.wager<=0 || State.wager>State.balance) return;
+
+  State.raceInProgress = true;
+  State.balance -= State.wager;
+  updateBalanceDisplay();
+  renderBetSlip();
+
+  $('#lobby').style.display='none';
+  const arena = $('#arena'); arena.classList.add('show');
+  resizeCanvas();
+  $('#raceModeBadge').textContent = weatherLabel(State.weather);
+  renderYourBetPill(f);
+
+  startRaceSimulation();
+  Camera.zoom=1; Camera.tZoom=1.08; Camera.panX=0; Camera.tPanX=0; Camera.shake=0;
+
+  await runCountdown();
+
+  raceStartTs = performance.now();
+  raceLoop._last = null;
+  raceAnimReq = requestAnimationFrame(raceLoop);
+}
+
+function renderYourBetPill(f){
+  const pill = $('#yourBetPill');
+  pill.style.setProperty('--fc', f.archetype.color);
+  const payout = Math.round(State.wager*f.multiplier);
+  pill.innerHTML = `<div class="sw" style="--fc:${f.archetype.color}"></div>
+    Your bet: <b>${f.archetype.name}</b> · ¢${fmt(State.wager)}
+    <span class="yb-payout">→ ¢${fmt(payout)} to win</span>`;
+}
+
+function weatherLabel(m){
+  return {day:'☀ Day', sunset:'🌇 Sunset', night:'🌙 Night', rain:'🌧 Rain', morning:'🌄 Morning'}[m]||m;
+}
+
+function runCountdown(){
+  return new Promise(resolve=>{
+    let n = 3;
+    ctx.clearRect(0,0,CW,CH);
+    resizeCanvas();
+    const drawFrame = ()=>{
+      ctx.clearRect(0,0,CW,CH);
+      drawEnvironment(0.016);
+      ctx.save();
+      ctx.textAlign='center';
+      ctx.font='bold 64px "Arial Black",sans-serif';
+      ctx.fillStyle='rgba(255,255,255,0.92)';
+      ctx.shadowColor='#39ff88'; ctx.shadowBlur=24;
+      ctx.fillText(n>0? n : 'GO!', CW/2, CH/2);
+      ctx.restore();
+    };
+    seedAmbient();
+    drawFrame();
+    Audio1.beep(660);
+    const iv = setInterval(()=>{
+      n--;
+      if(n>0){ Audio1.beep(660); drawFrame(); }
+      else if(n===0){ Audio1.beep(1046); drawFrame(); }
+      else { clearInterval(iv); Audio1.go(); resolve(); }
+    },700);
+  });
+}
+
+$('#betBtn').addEventListener('click', beginRaceFlow);
+
+/* ============================================================
+   SECTION 17 — RESULT MODAL ACTIONS
+   ============================================================ */
+async function returnToLobby(){
+  $('#resultOverlay').classList.remove('show');
+  $('#arena').classList.remove('show');
+  $('#lobby').style.display='flex';
+  await prepareRound();
+}
+$('#closeResultBtn').addEventListener('click', returnToLobby);
+$('#raceAgainBtn').addEventListener('click', async ()=>{
+  await returnToLobby();
+});
+
+/* ============================================================
+   SECTION 18 — AMBIENT LOBBY BACKDROP (CSS layer)
+   ============================================================ */
+function seedLobbyBackdrop(){
+  const bg = $('#swampBg');
+  bg.innerHTML = `<div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>`;
+  for(let i=0;i<10;i++){
+    const f = document.createElement('div');
+    f.className='firefly';
+    f.style.left = (rand01()*100)+'%';
+    f.style.top = (40+rand01()*50)+'%';
+    f.style.animationDelay = (rand01()*9)+'s';
+    f.style.animationDuration = (7+rand01()*5)+'s';
+    bg.appendChild(f);
+  }
+  const leafEmojis=['🍃','🍂'];
+  for(let i=0;i<5;i++){
+    const l = document.createElement('div');
+    l.className='leaf-drift';
+    l.textContent = pick(leafEmojis);
+    l.style.left = (rand01()*100)+'%';
+    l.style.animationDuration = (14+rand01()*10)+'s';
+    l.style.animationDelay = (rand01()*10)+'s';
+    bg.appendChild(l);
+  }
+}
+
+/* ============================================================
+   SECTION 19 — INIT
+   ============================================================ */
+async function init(){
+  seedLobbyBackdrop();
+  updateBalanceDisplay();
+  $('#pfClientSeed').value = State.clientSeed;
+  await prepareRound();
+  window.addEventListener('click',()=>{ Audio1.resume(); },{once:true});
+}
+init();
+</script>
+</body>
+</html>
